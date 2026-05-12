@@ -1,0 +1,49 @@
+title: Business Email Compromise (BEC) - Inbox Fwding Rule with Suspicious Sessions
+id: 
+status: test
+description: Detects BEC by correlating three indicators: 1) user creating inbox forwarding rules, 2) creating session coming from unusual IP address or geolocation, and 3) no prior authentication from this IP/location.
+references:
+    - https://attack.mitre.org/techniques/T1114/003/
+    - https://attack.mitre.org/techniques/T1078/004/
+author: Peter Stollery
+date: 2026-05-11
+modified: 2026-05-11
+tags:
+    - attack.collection
+    - attack.persistence
+    - attack.initial_access
+logsource:
+    product: microsoft365
+    service: exchange
+detection:
+    inbox_rule_created:
+        Operation:
+            - "New-InboxRule"
+            - "Set-InboxRule"
+        Parameters|contains:
+            - "ForwardTo"
+            - "ForwardAsAttachmentTo"
+            - "RedirectTo"
+
+    external_destination:
+        Parameters|contains:
+            - "@gmail.com"
+            - "@yahoo.com"
+            - "@outlook.com"
+            - "@hotmail.com"
+            - "@proton.me"
+        Parameters|not|contains: '@yourdomain.com'
+        # can extend with more known free email providers and use own domain for exclusion
+
+    risky_session:
+        ClientInfoString|contains:
+            - "Client=OWA"
+            - "Client=REST"
+    
+    # could enrich with EntraID risky sign-in events for the same user and correlate with this activity
+
+    condition: inbox_rule_created and external_destination and risky_session
+
+falsepositives:
+    - Legitimate forwarding rules created by users to personal email accounts.
+level: high
