@@ -1,0 +1,44 @@
+title: Golden Ticket Detection
+id:
+status: test
+description: Detects the use of Golden Tickets, which are forged Kerberos tickets that allow attackers to maintain persistent access to a network.
+references:
+    - https://attack.mitre.org/techniques/T1558/001/
+    - https://www.microsoft.com/security/blog/2020/01/14/golden-ticket-attacks-and-how-to-defend-against-them/
+author: Peter Stollery
+date: 2026-05-12
+modified: 2026-05-12
+tags:
+    - attack.persistence
+    - attack.credential_access
+logsource:
+    product: windows
+    service: security
+detection:
+    #rc4 encryption is a strong indicator of Golden Ticket usage, as it is commonly used to forge tickets
+    rc4_downgrade:
+        EventID: 4769
+        TicketEncryptionType: 0x17  # RC4_HMAC
+        AccountName|not|endswith: '$' # exclusion of computer accounts as they may legitimately use RC4 for certain operations
+
+    privilege_assignment:
+        EventID: 4672
+        Privileges|contains: 
+            - "SeTcbPrivilege"
+            - "SeDebugPrivilege"
+            - "SeEnableDelegationPrivilege"
+
+    suspicious_account:
+        EventID: 4769
+        AccountName|contains:
+            - "krbtgt"
+            - "Administrator" # commonly target local admin accounts for Golden Ticket attacks
+        IPAddress|not|startswith:
+            - "127.0.0."
+            - "::1"
+
+    condition: rc4_downgrade OR (rc4_downgrade AND privilege_assignment) OR suspicious_account
+
+    falsepositives:
+    - Legitimate use of RC4 encryption in older systems or specific configurations.
+    level: high
