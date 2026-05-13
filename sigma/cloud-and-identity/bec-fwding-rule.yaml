@@ -1,5 +1,5 @@
 title: Business Email Compromise (BEC) - Inbox Forwarding Rule with Suspicious Sessions
-id: 
+id: 6BB18D43-7CD7-4F9B-8809-AF0413288A45
 status: test
 description: Detects BEC by correlating three indicators: 1) user creating inbox forwarding rules, 2) creating session coming from unusual IP address or geolocation, and 3) no prior authentication from this IP/location.
 references:

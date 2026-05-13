@@ -1,5 +1,5 @@
 title: Golden Ticket Detection
-id:
+id: A318B1A4-9295-46A7-AAD7-5AB87E1C150E
 status: test
 description: Detects the use of Golden Tickets, which are forged Kerberos tickets that allow attackers to maintain persistent access to a network.
 references:

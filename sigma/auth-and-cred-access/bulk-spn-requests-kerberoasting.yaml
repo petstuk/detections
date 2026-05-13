@@ -1,0 +1,30 @@
+title: Bulk SPN Requests - kerberoasting
+id: D3BAF6DD-9445-4B72-A066-0CC8E890E075
+status: test
+description: Detects potential kerberoasting activity by indentifying high volume of SPN requests from a single account. Detection targets volume/breadth pattern, not a singular event.
+references:
+    - https://attack.mitre.org/techniques/T1558/003/
+    - https://www.github.com/GhostPack/Rubeus/
+author: Peter Stollery
+date: 2026-05-13
+modified: 2026-05-13
+tags:
+    - attack.credential_access
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4769
+        Status: 0x0
+        AccountName|not|endswith: '$' # exclude computer accounts as they may legitimately request SPNs for services they run
+        ServiceName|not|endswith: '$' # exclude SPNs that end with $ as they are typically associated with computer accounts
+        ServiceName|not|startswith: "krbtgt" # exclude krbtgt SPN requests as they are common and not typically associated with kerberoasting
+
+# Sigma does not support counting events over a time window, this looks at a singular event and requires input from SIEM to trigger on volume of events from a single account
+    
+    condition: selection
+
+falsepositives:
+    - Legitimate high volume of SPN requests from service accounts or during certain operations like patching or maintenance activities.
+level: medium
