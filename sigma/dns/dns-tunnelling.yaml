@@ -1,0 +1,30 @@
+title: DNS Tunnelling - High Volume & Long Sub-domain Queries
+id: 48B7E7CD-5F44-4FB9-B230-03AB94AC39F6
+status: test
+description: Detects potential DNS tunnelling activity by identifying high volumes of DNS queries paired with long sub-domain names.
+references:
+    - https://attack.mitre.org/techniques/T1071/004/
+    - https://www.sans.org/white-papers/38997/
+author: Peter Stollery
+date: 2026-05-16
+modified: 2026-05-16
+tags:
+    - attack.command_and_control
+logsource:
+    product: dns
+detection:
+    long_subdomain:
+        QueryName|re: '(?i)^[a-zA-Z0-9]{50,}\.' # regex to identify sub-domains with 50 or more alphanumeric characters
+    base_64_pattern:
+        QueryName|re: '(?i)^[a-zA-Z0-9+/]{30,}={0,2}\.[a-zA-Z0-9.-]+$' # regex to identify sub-domains that appear to be base64 encoded with 50 or more characters
+    long_fqdn:
+        QueryName|re: '.{100.}' # regex to identify fully qualified domain names that are 100 or more characters in length
+
+    condition: long_subdomain or base_64_pattern or long_fqdn
+
+# NOTE: Sigma does not support counting events over a time window, this looks at a singular event and requires input from SIEM to trigger on volume of events from a single account
+
+falsepositives:
+    - Legitimate use of long sub-domains for content delivery networks (CDNs) or other services that utilize long domain names.
+    - False positives may occur with certain legitimate services that use long sub-domains for tracking or analytics purposes.
+level: medium
