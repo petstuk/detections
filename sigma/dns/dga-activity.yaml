@@ -1,0 +1,30 @@
+title: DGA Activity - High NXDomain Ratio across Multiple Domains
+id: F85B37CE-305A-467E-A50E-C4F3B02F3F6B
+status: test
+description: Detects potential Domain Generation Algorithm (DGA) activity by identifying a high ratio of NXDomain responses across multiple queried domains.
+references: 
+    - https://attack.mitre.org/techniques/T1568/001/
+    - https://www.sans.org/white-papers/38997/
+author: Peter Stollery
+date: 2026-05-19
+modified: 2026-05-19
+tags:
+    - attack.command_and_control
+logsource:
+    product: dns
+detection:
+    nxdomain_response:
+        EvemtID: 22 # DNS query response event
+        QueryStatus: "0" # NXDomain response status
+    
+    dga_pattern:
+        QueryName|re: '(?i)^[a-z0-9]{8,20}\.(com|net|org|info|biz|pw|xyz|top)$' # regex to identify domains that are 8-20 alphanumeric characters followed by common TLDs (loose structural fit)
+
+    condition: nxdomain_response and dga_pattern
+    
+    # NOTE: Sigma does not support counting events over a time window, this looks at a singular event and requires input from SIEM to trigger on volume of events from a single account
+
+falsepositives:
+    - Legitimate use of newly registered domains that may not yet have DNS records, resulting in NXDomain responses.
+    - False positives may occur with certain legitimate services that use dynamically generated sub-domains for tracking or analytics purposes.
+level: medium
