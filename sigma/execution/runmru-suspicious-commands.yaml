@@ -1,0 +1,79 @@
+title: RunMRU changes (suspicious commands)
+id: 60d3c7d8-3898-4e34-8832-757eb3d2d79a
+status: test
+description: Detects changes to the RunMRU registry - management of potential ClickFix execution.
+references:
+    - https://www.proofpoint.com/uk/blog/threat-insight/security-brief-clickfix-social-engineering-technique-floods-threat-landscape
+    - https://attack.mitre.org/techniques/T1204/004/
+author: Peter Stollery
+date: 2026-05-21
+modified: 2026-05-21
+tags:
+    - attack.execution
+logsource:
+    product: windows
+    category: registry_set
+detection:
+    runmru_key:
+        EventType: SetValue
+        TargetObject|contains:
+            - "\CurrentVersion\Explorer\RunMRU"
+
+    powershell_indicators:
+        Details|contains|all:
+            - "powershell"
+        Details|contains:
+            - "-enc"
+            - "-EncodedCommand"
+            - "IEX"
+            - "Invoke-Expression"
+            - "DownloadString"
+            - "WebClient"
+            - "hidden"
+            - "bypass"
+
+    download_cradle_indicators:
+        Details|contains:
+            - "mshta"
+            - "wscript"
+            - "cscript"
+            - "certutil"
+            - "bitsadmin"
+            - "curl"
+            - "wget"
+    
+    url_in_command:
+        Details|contains:
+            - "http://"
+            - "https://"
+            - "@ssl"
+    
+    chained_commands:
+        Details|contains:
+            - "cmd /c"
+            - "cmd.exe /c"
+            - "&&"
+    
+    lolbin_indicators:
+        Details|contains:
+            - "rundll32"
+            - "regsvr32"
+            - "msiexec"
+            - "javascript"
+            - "vbscript:"
+
+    condition: runmru_key and (
+        powershell_indicators or 
+        download_cradle_indicators or 
+        url_in_command or 
+        chained_commands or 
+        lolbin_indicators
+    )
+
+falsepositives:
+    - IT administrators running PowerShell commands via Run dialog (rare)
+    - Developers testing scripts interactively via Win+R
+    - Legitimate mshta or rundll32 invocations from known-good admin tools
+    - Should be low rate overall, very rare to see commands executed via Win+R
+
+level: high
