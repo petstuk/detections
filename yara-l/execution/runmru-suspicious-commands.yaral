@@ -1,7 +1,7 @@
 rule runmru_suspicious_command_clickfix {
 
   meta:
-    author        = "SOC Detection Engineering"
+    author        = "Peter Stollery"
     description   = "Detects suspicious commands written to the Windows RunMRU registry key indicating potential ClickFix attack. Covers T1204.002, T1059.001, T1218.005."
     severity      = "HIGH"
     priority      = "HIGH"

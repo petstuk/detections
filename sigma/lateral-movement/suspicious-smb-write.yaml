@@ -1,0 +1,69 @@
+title: SMB Write of Suspicious File to Network Share
+id: 6B81E777-A637-443B-85FF-025C286AA0BA
+status: test
+description: Detects suspicious executables or script files written to network shares via SMB.
+references:
+    - https://attack.mitre.org/techniques/T1021/002/
+    - https://attack.mitre.org/techniques/T1570/
+author: Peter Stollery
+date: 2026-05-29
+modified: 2026-05-29
+tags:
+    - attack.lateral_movement
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 5145
+        AccessMask|contains:
+            - "0x2"
+            - "0x4"
+            - "0x40"
+    
+    suspicious_extensions:
+        RelativeTargetName|endswith:
+            - ".exe"
+            - ".dll"
+            - ".sys"
+            - ".cpl"
+            - ".ps1"
+            - ".bat"
+            - ".cmd"
+            - ".vbs"
+            - ".vbe"
+            - ".js"
+            - ".jse"
+            - ".wsf"
+            - ".wsh"
+            - ".msi"
+            - ".msp"
+            - ".hta"
+            - ".scr"
+            - ".pif"
+            - ".lnk"
+            - ".iso"
+            - ".zip"
+
+    admin_share:
+      # add this for higher fidelity of the rule.
+        ShareName|contains:
+            - "ADMIN$"
+            - "C$"
+            - "D$"
+            - "E$"
+            - "IPC$"
+
+    condition: selection and (
+        suspicious_extensions or 
+        admin_share
+    )
+    # to increase fidelity change conditional "or" to "and"
+
+falsepositives:
+    - Software developement tools
+    - Legitimate admin activity
+    - Security tooling
+
+level: high
+# up to high if fidelity is increase in rule condition, else medium.

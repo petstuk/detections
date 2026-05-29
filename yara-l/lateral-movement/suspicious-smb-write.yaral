@@ -1,0 +1,53 @@
+rule smb_suspicious_file_write {
+
+  meta:
+    author       = "Peter Stollery"
+    description  = "Detects suspicious executable or script files written to SMB network shares. High fidelity when targeting admin shares (ADMIN$, C$). Covers T1021.002, T1570, T1543.003."
+    severity     = "HIGH"
+    priority     = "HIGH"
+    mitre_attack = "T1021.002, T1570, T1543.003"
+
+  events:
+    $write.metadata.event_type        = "FILE_UNCATEGORIZED"
+    $write.metadata.product_name      = "Microsoft-Windows-Security-Auditing"
+    $write.metadata.product_event_id  = "5145"
+
+    $write.target.resource.attribute.labels["AccessMask"] = /0x[24]0*/i
+
+    $write.target.file.full_path = /(?i)\.(exe|dll|sys|cpl|ocx|ps1|psm1|bat|cmd|vbs|vbe|js|jse|wsf|wsh|msi|msp|hta|scr|pif|lnk|sct|wsc|iso)$/
+
+    not $write.principal.user.userid = /\$$/
+    not $write.principal.ip = "127.0.0.1"
+    not $write.principal.ip = "::1"
+
+    $src_ip   = $write.principal.ip
+    $dst_host = $write.target.hostname
+    $account  = $write.principal.user.userid
+    $filename = $write.target.file.full_path
+
+    $exec.metadata.event_type  = "PROCESS_LAUNCH"
+    $exec.principal.hostname   = $dst_host
+    $exec.target.process.file.full_path = /(?i)\.(exe|dll|bat|cmd|ps1|vbs|hta|msi|scr)$/
+
+  match:
+    $dst_host over 30s
+
+  condition:
+    #write >= 1
+
+  outcome:
+    $risk_score = max(
+      40 +
+      if($write.target.resource.name = /(?i)(ADMIN\$|C\$|D\$|IPC\$)/, 35, 0) +
+      if($write.target.file.full_path = /(?i)\.(exe|dll|sys|scr|cpl)$/, 20, 0) +
+      if($write.target.file.full_path = /(?i)\.(ps1|bat|cmd|vbs|hta|js)$/, 15, 0) +
+      if(#exec > 0, 25, 0) +
+      if($write.target.file.full_path = /(?i)(\\Temp\\|\\Windows\\|\\System32\\)/, 20, 0)
+    )
+    $is_admin_share      = ($write.target.resource.name = /(?i)(ADMIN\$|C\$|IPC\$)/)
+    $execution_confirmed = (#exec > 0)
+    $written_file        = $filename
+    $source_ip           = $src_ip
+    $target_host         = $dst_host
+    $writing_account     = $account
+}
